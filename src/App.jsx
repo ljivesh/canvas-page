@@ -9,7 +9,7 @@ import { Canvas } from "@react-three/fiber";
 import { Model as Avatar } from "./Avatar";
 import { useEffect, useState, useRef } from "react";
 import { useSynthesize } from "./utils/synthesizer-hook";
-import { useLoadFfmpeg } from "./utils/ffmpeg-hook";
+// import { useLoadFfmpeg } from "./utils/ffmpeg-hook";
 // import { fetchFile } from "@ffmpeg/ffmpeg";
 import { useQueue } from "@uidotdev/usehooks";
 import axios from "axios";
@@ -350,7 +350,7 @@ function App() {
               <Environment preset="sunset" />
               <Image url={backgroundImage} scale={2} />
               {/* <Html scale={0.05} occlude transform position={[-0.05, 0.22, 0.01]}>
-          <video width="650" muted src={"https://video-rendering-service-bucket.s3.ap-south-1.amazonaws.com/videos/vivoad.mp4"} />
+          <video width="650" muted autoPlay crossorigin="anonymous" src={"https://video-rendering-service-bucket.s3.ap-south-1.amazonaws.com/videos/vivoad.mp4"} />
         </Html> */}
               {model && (
                 <Avatar
