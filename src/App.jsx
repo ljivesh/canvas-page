@@ -14,6 +14,7 @@ import { useLoadFfmpeg } from "./utils/ffmpeg-hook";
 import { useQueue } from "@uidotdev/usehooks";
 import axios from "axios";
 import backgroundImage from "./assets/background.jpg";
+import playButtonSvg from "./assets/player-button-icon.svg";
 
 const ssmlTemplate = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US">
 <voice name="__VOICE__"  >
@@ -42,11 +43,16 @@ function App() {
 
   const [readyToPlay, setReadyToPlay] = useState(false);
 
+  const [loaded, setLoaded] = useState(false);
+
+  const [playing, setPlaying] = useState(false);
+
   const [recording, setRecording] = useState(false);
 
   const playHandler = () => {
+    console.log(bufferQueue.length);
     bufferQueue.forEach((frame) => enqueueFrame(frame));
-    pla
+    audioRef.current.play();
     // toggleRecording();
   };
 
@@ -74,6 +80,10 @@ function App() {
               const blob = new Blob([result.audioData], { type: "audio/mp3" });
               recordedAudioBlobsRef.current = blob;
 
+              audioRef.current.src = window.URL.createObjectURL(
+                recordedAudioBlobsRef.current
+              );
+              setLoaded(true);
               setReadyToPlay(true);
             },
             (error) => {
@@ -89,6 +99,7 @@ function App() {
         return null;
       }
     };
+    setLoaded(false);
 
     if (speechSynthesizer) {
       speechSynthesizer.visemeReceived = (s, e) => {
@@ -106,6 +117,10 @@ function App() {
         fetchVideoData(id);
       }
     }
+
+    return () => {
+      if (speechSynthesizer) speechSynthesizer.visemeReceived = null;
+    };
   }, [speechSynthesizer]);
 
   const canvasRef = useRef();
@@ -258,23 +273,48 @@ function App() {
   //   // videoRef.current.srcObject = stream;
   // }, [])
 
+  const baseWidth = 1;
+  const baseHeight = 1;
+
+  // State to hold dimensions
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
-    height: window.innerHeight,
+    height: window.innerWidth * (baseHeight / baseWidth),
   });
 
+  // Effect for handling window resize or orientation change
   useEffect(() => {
-    const handleResize = () => {
+    const updateDimensions = () => {
+      let newWidth = window.innerWidth;
+      let newHeight = window.innerHeight;
+      let newAspectRatio = newWidth / newHeight;
+      let baseAspectRatio = baseWidth / baseHeight;
+
+      if (newAspectRatio > baseAspectRatio) {
+        // Window is too wide: limit width based on height
+        newWidth = newHeight * baseAspectRatio;
+      } else {
+        // Window is too tall: limit height based on width
+        newHeight = newWidth / baseAspectRatio;
+      }
+
       setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
+        width: newWidth,
+        height: newHeight,
       });
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", updateDimensions);
+    window.addEventListener("orientationchange", updateDimensions);
 
-    // Cleanup
-    return () => window.removeEventListener('resize', handleResize);
+    // Call once to set initial size
+    updateDimensions();
+
+    // Cleanup listeners when the component unmounts
+    return () => {
+      window.removeEventListener("resize", updateDimensions);
+      window.removeEventListener("orientationchange", updateDimensions);
+    };
   }, []);
 
   return (
@@ -284,60 +324,96 @@ function App() {
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
-        width: '100%',
-        height: '100%'
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "#e7e5e4",
       }}
     >
-      <Canvas
-        ref={canvasRef}
-        style={{
-          width: dimensions.width, // Use state for dynamic sizing
-          height: dimensions.height, // Use state for dynamic sizing
-          backgroundColor: "white",
-        }}
-        camera={{
-          position: [0, 0, 10],
-          fov: 11,
-        }}
-      >
-        <Environment preset="sunset" />
-        <Image url={backgroundImage} scale={2} />
-        {/* <Html scale={0.05} occlude transform position={[-0.05, 0.22, 0.01]}>
+      <>
+        {!loaded ? (
+          <div className="spinner"></div>
+        ) : (
+          <>
+            {" "}
+            <Canvas
+              ref={canvasRef}
+              style={{
+                width: dimensions.width, // Use state for dynamic sizing
+                height: dimensions.height, // Use state for dynamic sizing
+                backgroundColor: "",
+              }}
+              camera={{
+                position: [0, 0, 10],
+                fov: 11,
+              }}
+            >
+              <Environment preset="sunset" />
+              <Image url={backgroundImage} scale={2} />
+              {/* <Html scale={0.05} occlude transform position={[-0.05, 0.22, 0.01]}>
           <video width="650" muted src={"https://video-rendering-service-bucket.s3.ap-south-1.amazonaws.com/videos/vivoad.mp4"} />
         </Html> */}
-        {model && (
-          <Avatar
-            position={[-0.6, -0.6, 1]}
-            scale={0.5}
-            model={model}
-            currentAnimation={currentAnimation}
-            lipsync={{
-              firstFrame,
-              removeFrame: dequeueFrame,
-            }}
-            setReadyToPlay={setReadyToPlay}
-          />
+              {model && (
+                <Avatar
+                  position={[-0.6, -0.6, 1]}
+                  rotation={[0, 0.2, 0]}
+                  scale={0.5}
+                  model={model}
+                  currentAnimation={currentAnimation}
+                  lipsync={{
+                    firstFrame,
+                    removeFrame: dequeueFrame,
+                  }}
+                  setReadyToPlay={setReadyToPlay}
+                  setPlaying={setPlaying}
+                />
+              )}
+              {/* <OrbitControls /> */}
+            </Canvas>
+            {!playing && (
+              <div
+                style={{
+                  position: "absolute",
+                  width: dimensions.width,
+                  height: dimensions.height,
+                  backgroundColor: "rgb(180, 180, 184, 0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <button
+                  onClick={playHandler}
+                  disabled={!readyToPlay}
+                  ref={recordButtonRef}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    display: "flex",
+                    alignItems: "center",
+                    border: "1px solid gray",
+                    boxShadow: "2px 2px gray",
+                    justifyContent: "center",
+                    borderRadius: "50%",
+                    padding: 2,
+                    backgroundColor: "#BFD8AF",
+                  }}
+                >
+                  <img
+                    src={playButtonSvg}
+                    style={{ marginLeft: 10 }}
+                    width={40}
+                  />
+                </button>
+              </div>
+            )}
+          </>
         )}
-        {/* <OrbitControls /> */}
-      </Canvas>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <button
-          onClick={playHandler}
-          disabled={!readyToPlay}
-          ref={recordButtonRef}
-        >
-          Play
-        </button>
-      </div>
-      {/* {ready ? <h2>Ffmpeg ready</h2> : <h2>Ffmpeg not ready</h2>} */}
-
-      {/* <video style={{width: 500, height: 500}}  ref={videoRef} /> */}
-      {/* <button ref={downloadButtonRef} >Download</button> */}
+        {/* {ready ? <h2>Ffmpeg ready</h2> : <h2>Ffmpeg not ready</h2>} */}
+        {/* <video style={{width: 500, height: 500}}  ref={videoRef} /> */}
+        {/* <button ref={downloadButtonRef} >Download</button> */}
+        <audio style={{ display: "none" }} ref={audioRef} controls />
+      </>
+      )
     </div>
   );
 }

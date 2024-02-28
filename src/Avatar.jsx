@@ -10,9 +10,7 @@ import * as THREE from "three";
 import { facialPositionMap, animationMap } from "./mappings.js";
 
 export function Model(props) {
-  const { nodes, materials, scene } = useGLTF(
-   props.model.url
-  );
+  const { nodes, materials, scene } = useGLTF(props.model.url);
 
   const [blink, setBlink] = useState(false);
 
@@ -77,9 +75,7 @@ export function Model(props) {
     });
   };
 
-  const { animations } = useGLTF(
-    props.model.animations
-  );
+  const { animations } = useGLTF(props.model.animations);
   // console.log(animations);
 
   const group = useRef();
@@ -114,27 +110,30 @@ export function Model(props) {
     return () => clearTimeout(blinkTimeout);
   }, []);
 
-
   const [lipsyncing, setLipsyncing] = useState(false);
+
+  useEffect(() => {
+    if (lipsyncing) props.setPlaying(true);
+    else props.setPlaying(false);
+  }, [lipsyncing]);
   useFrame(() => {
     if (props.lipsync.firstFrame) {
       setLipsyncing(true);
 
-        // const choice = Math.floor(Math.random()*3);
-        // setCurrentAnimation('explaining');
+      // const choice = Math.floor(Math.random()*3);
+      // setCurrentAnimation('explaining');
       props.setReadyToPlay(false);
       props.lipsync.firstFrame.forEach((value, index) =>
-        lerpMorphTargets(facialPositionMap[index], value*0.60, 0.5)
+        lerpMorphTargets(facialPositionMap[index], value * 0.6, 0.5)
       );
       props.lipsync.removeFrame();
     } else {
-
-      if(lipsyncing) {
+      if (lipsyncing) {
         // props.toggleRecording();
         setLipsyncing(false);
+        props.setReadyToPlay(true);
       }
-        // setCurrentAnimation('idle');
-      props.setReadyToPlay(true);
+      // setCurrentAnimation('idle');
       resetMorphTargets();
     }
   });
@@ -185,11 +184,13 @@ export function Model(props) {
           skeleton={nodes.Wolf3D_Hair.skeleton}
         />
       )}
-      {nodes.Wolf3D_Glasses && <skinnedMesh
-        geometry={nodes.Wolf3D_Glasses.geometry}
-        material={materials.Wolf3D_Glasses}
-        skeleton={nodes.Wolf3D_Glasses.skeleton}
-      />}
+      {nodes.Wolf3D_Glasses && (
+        <skinnedMesh
+          geometry={nodes.Wolf3D_Glasses.geometry}
+          material={materials.Wolf3D_Glasses}
+          skeleton={nodes.Wolf3D_Glasses.skeleton}
+        />
+      )}
       <skinnedMesh
         geometry={nodes.Wolf3D_Body.geometry}
         material={materials.Wolf3D_Body}
