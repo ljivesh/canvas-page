@@ -130,7 +130,7 @@ export function Model(props) {
     } else {
 
       if(lipsyncing) {
-        props.toggleRecording();
+        // props.toggleRecording();
         setLipsyncing(false);
       }
         // setCurrentAnimation('idle');

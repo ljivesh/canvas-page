@@ -4,7 +4,7 @@ import { SpeechConfig } from 'microsoft-cognitiveservices-speech-sdk';
 
 export async function getTokenOrRefresh() {
     try {
-        const res = await axios.get('/api/speech/get-speech-token');
+        const res = await axios.get('/get-speech-token');
         const token = res.data.token;
         const region = res.data.region;
         // console.log('Token fetched from back-end: ' + token);
