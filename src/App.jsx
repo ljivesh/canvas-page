@@ -25,7 +25,7 @@ __TEXT__
 </speak>`;
 
 function App() {
-  const [currentAnimation, setCurrentAnimation] = useState("idle");
+  const [currentAnimation, setCurrentAnimation] = useState("Idle");
   const { speechSynthesizer } = useSynthesize();
 
   // const {ready, ffmpeg} = useLoadFfmpeg();
